@@ -1,16 +1,8 @@
-
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.analysis import CallAnalysisResponse
-
-
-class CallCreate(BaseModel):
-    call_reference: str
-    agent_name: str
-    transcript: str
-
 
 class CallResponse(BaseModel):
     id: int
@@ -32,3 +24,18 @@ class CallDetailResponse(BaseModel):
     analysis: CallAnalysisResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class CallCreate(BaseModel):
+    call_reference: str = Field(
+        min_length=1,
+        max_length=100
+    )
+    agent_name: str = Field(
+        min_length=1,
+        max_length=100
+    )
+    transcript: str = Field(
+        min_length=1
+    )
+
+    model_config = ConfigDict(str_strip_whitespace=True)
