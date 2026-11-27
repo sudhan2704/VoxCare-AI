@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models.call import Call
@@ -24,11 +25,13 @@ router = APIRouter(
 
 
 # Create a new call
+
 @router.post("/", response_model=CallResponse)
 def create_call(
     call_data: CallCreate,
     db: Session = Depends(get_db)
 ):
+    # Step 1: Check for an existing call
     existing_call = db.query(Call).filter(
         Call.call_reference == call_data.call_reference
     ).first()
@@ -39,11 +42,22 @@ def create_call(
             detail="Call reference already exists"
         )
 
+    # Step 2: Create a new call
     new_call = Call(**call_data.model_dump())
 
-    db.add(new_call)
-    db.commit()
-    db.refresh(new_call)
+    # Step 3: Save the call safely
+    try:
+        db.add(new_call)
+        db.commit()
+        db.refresh(new_call)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail="Call reference already exists"
+        )
 
     return new_call
 
